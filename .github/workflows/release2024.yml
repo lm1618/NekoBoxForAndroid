@@ -1,13 +1,13 @@
-name: Release Build
+name: Release Build 2024
 on:
   workflow_dispatch:
     inputs:
       tag:
         description: 'Release Tag'
         required: true
-#      upload:
-#        description: 'Upload: If want ignore'
-#        required: false
+      # upload:
+        # description: 'Upload: If want ignore'
+        # required: false
       publish:
         description: 'Publish: If want ignore'
         required: false
@@ -20,21 +20,21 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Golang Status
         run: find buildScript libcore/*.sh | xargs cat | sha1sum > golang_status
       - name: Libcore Status
         run: git ls-files libcore | xargs cat | sha1sum > libcore_status
       - name: LibCore Cache
         id: cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             app/libs/libcore.aar
           key: ${{ hashFiles('.github/workflows/*', 'golang_status', 'libcore_status') }}
       - name: Install Golang
         if: steps.cache.outputs.cache-hit != 'true'
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v5
         with:
           go-version: ^1.21
       - name: Native Build
@@ -47,19 +47,19 @@ jobs:
       - libcore
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Golang Status
         run: find buildScript libcore/*.sh | xargs cat | sha1sum > golang_status
       - name: Libcore Status
         run: git ls-files libcore | xargs cat | sha1sum > libcore_status
       - name: LibCore Cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             app/libs/libcore.aar
           key: ${{ hashFiles('.github/workflows/*', 'golang_status', 'libcore_status') }}
       - name: Gradle cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ~/.gradle
           key: gradle-oss-${{ hashFiles('**/*.gradle.kts') }}
@@ -86,9 +86,9 @@ jobs:
     needs: build
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Donwload Artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: APKs
           path: artifacts
@@ -99,38 +99,37 @@ jobs:
           mv ghr*linux_amd64/ghr .
           mkdir apks
           find artifacts -name "*.apk" -exec cp {} apks \;
-          ./ghr -delete -t "${{ github.token }}" -n "${{ github.event.inputs.tag }}" "${{ github.event.inputs.tag }}" apks#
-#  upload:
-#    name: Upload Release
-#    if: github.event.inputs.upload != 'y'
-#    runs-on: ubuntu-latest
-#    runs-on: ubuntu-latest
-#    needs: build
-#    steps:
-#      - name: Donwload Artifacts
-#        uses: actions/download-artifact@v3
-#        with:
-#          name: APKs
-#          path: artifacts
-#      - name: Release
-#        run: |
-#          mkdir apks
-#          find artifacts -name "*.apk" -exec cp {} apks \;
-#
-#          function upload() {
-#            for apk in $@; do
-#              echo ">> Uploading $apk"
-#              curl https://api.telegram.org/bot${{ secrets.TELEGRAM_TOKEN }}/sendDocument \
-#                -X POST \
-#                -F chat_id="${{ secrets.TELEGRAM_CHANNEL }}" \
-#                -F document="@$apk" \
-#                --silent --show-error --fail >/dev/null &
-#            done
-#            for job in $(jobs -p); do
-#              wait $job || exit 1
-#            done
-#          }
-#          upload apks/*
+          ./ghr -delete -t "${{ github.token }}" -n "${{ github.event.inputs.tag }}" "${{ github.event.inputs.tag }}" apks
+  upload:
+    name: Upload Release
+    if: github.event.inputs.upload != 'y'
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Donwload Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: APKs
+          path: artifacts
+      - name: Release
+        run: |
+          mkdir apks
+          find artifacts -name "*.apk" -exec cp {} apks \;
+
+          function upload() {
+            for apk in $@; do
+              echo ">> Uploading $apk"
+              curl https://api.telegram.org/bot${{ secrets.TELEGRAM_TOKEN }}/sendDocument \
+                -X POST \
+                -F chat_id="${{ secrets.TELEGRAM_CHANNEL }}" \
+                -F document="@$apk" \
+                --silent --show-error --fail >/dev/null &
+            done
+            for job in $(jobs -p); do
+              wait $job || exit 1
+            done
+          }
+          upload apks/*
   play:
     name: Build Play Bundle
     if: github.event.inputs.play != 'y'
@@ -139,19 +138,19 @@ jobs:
       - libcore
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Golang Status
         run: find buildScript libcore/*.sh | xargs cat | sha1sum > golang_status
       - name: Libcore Status
         run: git ls-files libcore | xargs cat | sha1sum > libcore_status
       - name: LibCore Cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             app/libs/libcore.aar
           key: ${{ hashFiles('.github/workflows/*', 'golang_status', 'libcore_status') }}
       - name: Gradle cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ~/.gradle
           key: gradle-play-${{ hashFiles('**/*.gradle.kts') }}
